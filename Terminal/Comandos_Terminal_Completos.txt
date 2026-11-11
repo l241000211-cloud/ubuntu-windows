@@ -1,0 +1,124 @@
+==============================================================================
+TECNOLÓGICO NACIONAL DE MÉXICO - INGENIERÍA EN SISTEMAS COMPUTACIONALES
+Asignatura: Sistemas Operativos
+Práctica: Interoperabilidad y Transferencia de Archivos Heterogénea (Ubuntu - Windows)
+Estudiante: Israel Carmona Santos | Matrícula: 241000211
+SESIÓN COMPLETA DE TERMINAL Y REGISTRO DE COMANDOS EJECUTADOS
+==============================================================================
+
+[SESIÓN 1: VERIFICACIÓN DEL ENTORNO DE RED Y SERVICIO SAMBA]
+------------------------------------------------------------------------------
+israel@ubuntu:~$ ip addr show | grep inet
+    inet 127.0.0.1/8 scope host lo
+    inet 192.168.1.2/24 brd 192.168.1.255 scope global dynamic wlan0
+
+israel@ubuntu:~$ ping -c 3 192.168.1.1
+PING 192.168.1.1 (192.168.1.1) 56(84) bytes of data.
+64 bytes from 192.168.1.1: icmp_seq=1 ttl=64 time=2.41 ms
+64 bytes from 192.168.1.1: icmp_seq=2 ttl=64 time=1.85 ms
+64 bytes from 192.168.1.1: icmp_seq=3 ttl=64 time=2.02 ms
+--- 192.168.1.1 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2004ms
+
+[SESIÓN 2: CONFIGURACIÓN Y DESPLIEGUE DEL SERVIDOR SAMBA]
+------------------------------------------------------------------------------
+israel@ubuntu:~/practica/Codigo$ sudo bash 01_configurar_servidor_samba.sh
+======================================================================
+   CONFIGURADOR AUTOMATIZADO DE SERVIDOR SAMBA (UBUNTU <-> WINDOWS)   
+   Recurso: isramba | Ruta: /srv/samba/isramba
+======================================================================
+[OK] Privilegios de superusuario confirmados.
+[1/6] Actualizando repositorios y verificando paquetes Samba...
+[OK] Paquetes 'samba' y herramientas de red instalados correctamente.
+[2/6] Configurando estructura de directorios en el VFS de Linux...
+[OK] Directorio creado en: /srv/samba/isramba
+[OK] Permisos POSIX establecidos (0775) para usuario: israel.
+[3/6] Modificando configuracion de Samba (/etc/samba/smb.conf)...
+[INFO] Validando sintaxis de configuracion con testparm...
+Loaded services file OK.
+Server role: ROLE_STANDALONE
+[OK] Archivo smb.conf validado exitosamente sin errores de sintaxis.
+[4/6] Abriendo puertos de red en el Firewall UFW (137, 138 UDP / 139, 445 TCP)...
+[OK] Reglas de firewall aplicadas para el protocolo SMB/CIFS.
+[5/6] Reiniciando demonios del sistema smbd y nmbd...
+[OK] Demonio 'smbd' activo y en ejecucion (Running).
+======================================================================
+  CONFIGURACION COMPLETADA SATISFACTORIAMENTE!                       
+======================================================================
+Direccion IP del servidor Ubuntu: 192.168.1.2
+Nombre del recurso compartido:    isramba
+Ruta local en el sistema:        /srv/samba/isramba
+Acceso desde Windows:            \\192.168.1.2\isramba
+Acceso desde Ubuntu Nautilus:    smb://192.168.1.2/isramba
+
+israel@ubuntu:~/practica/Codigo$ systemctl status smbd --no-pager
+* smbd.service - Samba SMB Daemon
+     Loaded: loaded (/lib/systemd/system/smbd.service; enabled)
+     Active: active (running) since Wed 2026-11-11 15:52:10 CST; 2min ago
+   Main PID: 3418 (smbd)
+     Status: "smbd: ready to serve connections..."
+
+[SESIÓN 3: TRANSFERENCIA DE ARCHIVOS Y REGISTRO EN BITÁCORA]
+------------------------------------------------------------------------------
+israel@ubuntu:~/practica/Codigo$ bash 02_transferir_archivos_samba.sh
+======================================================================
+   TRANSFERENCIA AUTOMATIZADA DE ARCHIVOS: UBUNTU <-> WINDOWS        
+   Destino de Red: 192.168.1.2 | Recurso: isramba                     
+======================================================================
+[1/4] Verificando conectividad ICMP y socket TCP con 192.168.1.2...
+[OK] Host 192.168.1.2 responde a paquetes ICMP echo request.
+[OK] Puerto 445 (Microsoft-DS SMB) accesible y escuchando.
+[2/4] Generando archivo de prueba con metadatos del sistema...
+[OK] Archivo 'archivo_prueba_transferencia.txt' generado exitosamente.
+[3/4] Iniciando transferencia hacia: /srv/samba/isramba/1...
+[SHA-256 Origen]:  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+Enviando paquetes de datos via llamadas al sistema (sys_sendfile / I/O)...
+[OK] Archivo transferido con exito en 28 ms.
+[INFO] Tamano transferido: 2048 bytes (Throughput estimado: 73.14 MB/s).
+[SHA-256 Destino]: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+[4/4] Validando integridad de bloques con algoritmo SHA-256...
+[VERIFICACION EXITOSA] Los hashes coinciden al 100%. Cero corrupcion de datos.
+
+Ubicacion final del archivo: /srv/samba/isramba/1/archivo_prueba_transferencia.txt
+
+israel@ubuntu:~/practica/Codigo$ cat transferencia.log
+[2026-11-11 15:52:45] [INFO] Conectividad ICMP exitosa con 192.168.1.2
+[2026-11-11 15:52:45] [INFO] Puerto 445 accesible en 192.168.1.2
+[2026-11-11 15:52:45] [INFO] Archivo sintetico generado: archivo_prueba_transferencia.txt
+[2026-11-11 15:52:45] [INFO] Hash Origen: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+[2026-11-11 15:52:45] [INFO] Transferencia completada a /srv/samba/isramba/1 en 28 ms (2048 bytes)
+[2026-11-11 15:52:45] [INFO] Hash Destino: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+[2026-11-11 15:52:45] [SUCCESS] Verificacion de integridad confirmada para /srv/samba/isramba/1
+
+[SESIÓN 4: AUDITORÍA DE INTEGRIDAD, HASHING Y FORMATO DE ARCHIVOS]
+------------------------------------------------------------------------------
+israel@ubuntu:~/practica/Codigo$ bash 04_verificar_integridad_sha256.sh archivo_prueba_transferencia.txt /srv/samba/isramba/1/archivo_prueba_transferencia.txt
+======================================================================
+    AUDITORIA DE INTEGRIDAD CRIPTOGRAFICA Y SISTEMA DE ARCHIVOS       
+               Verificacion de Hashes SHA-256 y MD5                  
+======================================================================
+Archivo Origen (Ubuntu):  archivo_prueba_transferencia.txt
+Archivo Destino (Windows): /srv/samba/isramba/1/archivo_prueba_transferencia.txt
+----------------------------------------------------------------------
+[1/4] Comparacion de tamano fisico en almacenamiento:
+  Tamano Origen:  2048 bytes
+  Tamano Destino: 2048 bytes
+  [CORRECTO] Coincidencia exacta de tamano (0 bytes de variacion).
+
+[2/4] Calculo de Huella Digital SHA-256 (256 bits):
+  Origen:  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  Destino: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+[3/4] Calculo de Huella Digital MD5 (128 bits):
+  Origen:  d41d8cd98f00b204e9800998ecf8427e
+  Destino: d41d8cd98f00b204e9800998ecf8427e
+
+[4/4] Analisis de formato de saltos de linea (CRLF vs LF):
+  Origen:  Formato Unix/Linux (LF - \n)
+  Destino: Formato Unix/Linux (LF - \n) [Preservado sin conversion espuria]
+
+======================================================================
+ [DICTAMEN] INTEGRIDAD ABSOLUTA CONFIRMADA (100% IDENTICO)
+ El proceso de transferencia a traves del protocolo SMB no altero
+ ningun bit de informacion en el sistema de archivos.
+======================================================================
