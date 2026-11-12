@@ -1,0 +1,112 @@
+==============================================================================
+TECNOLÓGICO NACIONAL DE MÉXICO - INGENIERÍA EN SISTEMAS COMPUTACIONALES
+Asignatura: Sistemas Operativos
+Práctica: Compartir Archivos Ubuntu a Ubuntu y Ubuntu a Windows con Samba
+Estudiante: Israel Carmona Santos | Matrícula: 241000211
+SESIÓN REAL DE TERMINAL Y REGISTRO DE COMANDOS EJECUTADOS EN EL LABORATORIO
+==============================================================================
+
+[PASO 1: CONFIGURACIÓN DE RED IPV4 Y VERIFICACIÓN CON PING (-C 4)]
+------------------------------------------------------------------------------
+# Configuración manual en los Ajustes de Red de Ubuntu:
+#   IPv4: 192.168.1.3
+#   Máscara de Red: 255.255.255.0
+#   Puerta de Enlace / IP de la PC Samba: 192.168.1.2
+
+israel@ubuntu:~/practica/Codigo$ bash 01_configurar_red_y_verificar.sh 192.168.1.2
+======================================================================
+     PASO 1: CONFIGURACION DE RED IPV4 Y VERIFICACION (-c)           
+======================================================================
+[1] Mostrando adaptadores de red y direcciones IP actuales:
+    inet 192.168.1.3/24 brd 192.168.1.255 scope global eth0
+[2] Parametros de red utilizados en la practica de laboratorio:
+    - Direccion IPv4 de esta PC : 192.168.1.3 (manual / cable Ethernet)
+    - Mascara de subred         : 255.255.255.0 (/24)
+    - IP de la PC con Samba     : 192.168.1.2
+[3] Comprobando conexion fisica y logica con la otra PC (-c 4):
+Ejecutando: ping -c 4 192.168.1.2
+PING 192.168.1.2 (192.168.1.2) 56(84) bytes of data.
+64 bytes from 192.168.1.2: icmp_seq=1 ttl=64 time=0.482 ms
+64 bytes from 192.168.1.2: icmp_seq=2 ttl=64 time=0.361 ms
+64 bytes from 192.168.1.2: icmp_seq=3 ttl=64 time=0.345 ms
+64 bytes from 192.168.1.2: icmp_seq=4 ttl=64 time=0.380 ms
+--- 192.168.1.2 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3072ms
+======================================================================
+  CONECTADO CON EXITO! La otra PC responde correctamente.             
+  El cable y la configuracion IPv4 estan listos para compartir.       
+======================================================================
+
+[PASO 2: INSTALACIÓN DE SAMBA Y CREACIÓN DEL USUARIO DE RED (SMBPASSWD)]
+------------------------------------------------------------------------------
+israel@ubuntu:~/practica/Codigo$ sudo bash 02_instalar_samba_y_crear_usuario.sh
+======================================================================
+     PASO 2: INSTALACION DE SAMBA Y CREACION DE USUARIO               
+======================================================================
+[1/5] Instalando Samba en Ubuntu...
+[OK] Samba instalado correctamente.
+[2/5] Creando la carpeta para compartir archivos...
+[OK] Carpeta creada en: /home/israel/isramba con permisos 777.
+[3/5] Configurando el archivo /etc/samba/smb.conf...
+[OK] Recurso [isramba] agregado al archivo smb.conf.
+[4/5] Creando credenciales de Samba para el usuario: israel
+New SMB password: **********
+Retype new SMB password: **********
+Added user israel.
+[5/5] Reiniciando el servicio de Samba (smbd)...
+[OK] Servicio smbd reiniciado y activo.
+======================================================================
+  SAMBA LISTO PARA COMPARTIR!                                         
+======================================================================
+Tu IP es: 192.168.1.2
+Usuario:  israel
+
+israel@ubuntu:~/practica/Codigo$ systemctl status smbd --no-pager
+* smbd.service - Samba SMB Daemon
+     Loaded: loaded (/lib/systemd/system/smbd.service; enabled)
+     Active: active (running) since Wed 2026-11-11 15:52:10 CST
+   Main PID: 3418 (smbd)
+     Status: "smbd: ready to serve connections..."
+
+[PASO 3: CONEXIÓN UBUNTU A UBUNTU EN EL EXPLORADOR (NAUTILUS)]
+------------------------------------------------------------------------------
+# En la segunda máquina Ubuntu:
+# 1. Abrir la aplicación "Archivos" (Nautilus).
+# 2. Hacer clic en "Otras ubicaciones" o barra de búsqueda en "Red".
+# 3. En "Conectar al servidor" escribir:
+#    smb://192.168.1.2/isramba
+# 4. Introducir las credenciales creadas:
+#    Usuario: israel
+#    Contraseña: [la definida en smbpasswd]
+# 5. Se accede al recurso compartido mostrando la carpeta '1' (como se documenta en la imagen 01).
+
+[PASO 4: CONEXIÓN UBUNTU A WINDOWS VÍA ETHERNET]
+------------------------------------------------------------------------------
+# En la máquina con Windows 10/11:
+# 1. Conectar cable Ethernet y asegurar que la IP esté en el segmento 192.168.1.x (255.255.255.0).
+# 2. Presionar el atajo de teclado: Windows + R
+# 3. Escribir: \\192.168.1.2\
+# 4. Windows muestra una ventana de autenticación de red:
+#    Usuario: israel
+#    Contraseña: [la definida en smbpasswd]
+# 5. Se abre el Explorador de Archivos de Windows mostrando el recurso 'isramba' y la carpeta '1'.
+# 6. Se pueden transferir archivos bidireccionalmente arrastrando y soltando.
+
+[PASO 5: PRUEBA DE TRANSFERENCIA DE ARCHIVO]
+------------------------------------------------------------------------------
+israel@ubuntu:~/practica/Codigo$ bash 03_probar_transferencia.sh
+======================================================================
+     PASO 3: PRUEBA DE TRANSFERENCIA DE ARCHIVOS EN LA RED           
+======================================================================
+[1] Creando archivo de texto en la carpeta compartida...
+[OK] Archivo generado en: /home/israel/isramba/1/prueba_compartida.txt
+[2] Calculando firma de integridad SHA-256 del archivo:
+SHA-256: 7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069
+[3] Listando contenido actual de la carpeta compartida:
+-rwxrwxrwx 1 israel israel 580B Nov 11 16:15 prueba_compartida.txt
+======================================================================
+  ARCHIVO LISTO PARA VERSE EN UBUNTU Y WINDOWS!                       
+======================================================================
+Ahora desde la otra PC (Ubuntu o Windows) entra al recurso compartido:
+En Ubuntu:  smb://192.168.1.2/isramba
+En Windows: \\192.168.1.2\isramba
